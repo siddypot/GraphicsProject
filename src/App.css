@@ -1,0 +1,154 @@
+.app {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.canvas-container {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 40vh;
+  align-self: stretch;
+  position: relative;
+  background: #1a1a1a;
+}
+
+.canvas-container canvas {
+  display: block;
+  max-width: 100%;
+  vertical-align: top;
+}
+
+.controls-panel {
+  width: 320px;
+  background: #2a2a2a;
+  border-left: 1px solid #444;
+  overflow-y: auto;
+  padding: 20px;
+  color: #fff;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.controls-panel h2 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #ccc;
+}
+
+.section {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #444;
+}
+
+.section:last-of-type {
+  border-bottom: none;
+}
+
+.image-slots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.image-slots-five {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.slider-control {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #444;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4a9eff;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(74, 158, 255, 0.5);
+}
+
+.slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4a9eff;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 4px rgba(74, 158, 255, 0.5);
+}
+
+.slider-value {
+  font-size: 12px;
+  color: #aaa;
+  font-weight: 500;
+}
+
+.snap-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.snap-buttons-five {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.snap-btn {
+  padding: 10px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #3a3a3a;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.snap-btn:hover:not(:disabled) {
+  background: #4a9eff;
+  border-color: #4a9eff;
+  box-shadow: 0 0 8px rgba(74, 158, 255, 0.4);
+}
+
+.snap-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.info-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #444;
+}
+
+.info-section p {
+  margin: 0;
+  font-size: 12px;
+  color: #999;
+  line-height: 1.5;
+}
