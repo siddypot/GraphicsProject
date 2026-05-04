@@ -1,132 +1,90 @@
-# Pyramid Image Mosaic — 3D Multi-View Image Renderer
+# Pyramid image mosaic
 
-A web-based Three.js visualization that renders a grid of 3D pyramids, where each pyramid face displays a different image when viewed from the corresponding angle.
+Web app using Three.js: many square pyramids in a volume. Each visible face can show a color sampled from one of your images (front, right, back, left, bottom), so the mosaic changes as you orbit the camera.
 
 ## Features
 
-✨ **Multi-View Mosaic**: Upload up to 4 images (Front, Right, Back, Left) and see the grid transform as you orbit around it. Each view reveals a different image mosaic.
+- **Multi-view mosaic**: Up to five images (Front, Right, Back, Left, Bottom). Orbit to see different faces dominate.
+- **Controls**: Drag to orbit, scroll to zoom, snap buttons to animate the camera to a cardinal view.
+- **Sliders**: Pyramid count (how many instances in the volume) and pyramid size (base / height of each solid).
 
-🎮 **Interactive Controls**:
-- **Mouse drag** to orbit around the pyramid grid
-- **Scroll** to zoom in/out
-- **Snap buttons** for instant transitions to specific viewing angles
+## How it works
 
-⚙️ **Customizable Grid**:
-- **Grid size slider** (5-80): Control the density and detail of the mosaic (default: 20×20)
-- **Pyramid height slider** (0.5x-3x): Adjust the 3D depth of each pyramid (default: 1x)
+Each pyramid:
 
-📊 **Image Upload**:
-- Drag-and-drop or click to upload images to any of the 4 views
-- Live thumbnail previews with quick-remove buttons
-- Automatic pixel sampling from uploaded images
+1. Has four triangular side faces (front / right / back / left in world space) and a square bottom.
+2. Colors each face from one sample per pyramid, based on that pyramid’s position inside a fixed volume (normalized coordinates map to UVs on each image).
+3. With images loaded, a head-on snap toward a face reads as a coarse mosaic of that image; off-axis views look like a scattered cloud of solids.
 
-## How It Works
+### Sampling
 
-Each pyramid in the grid:
-1. Has 4 triangular faces pointing toward Front, Right, Back, and Left
-2. Each face is colored with a single pixel sampled from the corresponding image
-3. When you view the grid head-on, you see a low-poly mosaic of the Front image
-4. Rotate 90° to see the Right image, 180° for Back, 270° for Left
-
-### Color Sampling
-
-The app:
-1. Draws each uploaded image onto a 256×256 offscreen canvas
-2. For each pyramid cell at grid position (col, row), samples the pixel at UV coordinates:
-   - U = (col + 0.5) / gridSize
-   - V = (row + 0.5) / gridSize
-3. Caches the pixel data for performance
+Images are drawn to an offscreen raster (see `SAMPLE_GRID_SIZE` in `src/utils/sampleImage.js`). Pixel data is cached per `ImageBitmap` so rebuilds do not redraw unnecessarily.
 
 ## Usage
 
-### Installation & Running
+### Install and run
 
 ```bash
-# Install dependencies
 npm install
-
-# Start the development server
 npm run dev
 ```
 
-Then open `http://localhost:5173` in your browser.
+Open `http://localhost:5173` in the browser.
 
-### Uploading Images
+### Images
 
-1. Click any of the 4 image slots (Front, Right, Back, Left)
-2. Select an image file from your computer
-3. The thumbnail appears, and the grid updates immediately
-4. Click the **×** button to remove an image
+1. Click a slot (Front, Right, Back, Left, or Bottom) and pick a file.
+2. Thumbnails update in the UI; the scene rebuilds when images change.
+3. Use the clear control on a slot to remove an image.
 
-### Controlling the View
+### View
 
-- **Orbit**: Click and drag with your mouse to rotate around the grid
-- **Zoom**: Scroll your mouse wheel to zoom in/out
-- **Snap to angle**: Click a snap button (Front, Right, Back, Left) to smoothly animate the camera to that view
+- Orbit: drag on the canvas.
+- Zoom: mouse wheel.
+- Snap: use the view buttons when the matching image is present (disabled otherwise).
 
-### Adjusting Parameters
+### Parameters
 
-- **Grid Size**: Use the slider to change the grid resolution (5-80). Higher values = more detail but more geometry
-- **Pyramid Height**: Use the slider to adjust how tall each pyramid is (0.5x-3x of cell size)
+- **Pyramid count**: More pyramids fill the volume more densely (heavier GPU work).
+- **Pyramid size**: Larger solids overlap more and read as chunkier geometry.
 
 ### Tips
 
-- Start with a grid size of 20-30 for best performance
-- For high-resolution grid sizes (50+), consider using simple, high-contrast images
-- When no images are loaded, the pyramids are very flat (height ≈ 0.1×)
-- The app automatically disables snap buttons that don't have images loaded
+- Lower pyramid counts are easier on the GPU while tuning layout.
+- Very high counts with large size may stress weaker machines.
 
-## Performance Notes
+## Performance
 
-- Full mesh rebuilds only happen when:
-  - An image is added or removed
-  - The grid size slider changes
-  - The pyramid height slider changes
-- Camera orbiting and animation happen every frame at 60 FPS
-- Pixel sampling is cached per image to avoid repeated canvas reads
+- The pyramid group is rebuilt when images change or when count/size sliders change, not every frame.
+- Orbit and snap animation run each frame; sampling uses cached raster data.
 
-## Browser Support
+## Browsers
 
-✅ Chrome / Chromium-based browsers
-✅ Safari
-✅ Firefox
-❌ Internet Explorer (not supported)
+Chrome, Safari, and Firefox are reasonable targets. Internet Explorer is not supported. Desktop is what this was tested on; mobile is untested.
 
-Desktop-only recommended (mobile is untested).
+## Stack
 
-## Technical Stack
+- React (UI)
+- Three.js (scene, meshes, OrbitControls)
+- Vite (dev server and build)
 
-- **React 19** for UI components
-- **Three.js r183** for 3D rendering
-- **OrbitControls** for camera manipulation
-- **Vite** for fast development and building
-
-## File Structure
+## Layout
 
 ```
 src/
-├── App.jsx                    # Main app layout and image management
-├── App.css                    # App styling
+├── App.jsx
+├── App.css
 ├── components/
-│   ├── ImageUploadSlot.jsx   # Image upload UI component
-│   └── ImageUploadSlot.css   # Upload slot styling
+│   ├── ImageUploadSlot.jsx
+│   └── ImageUploadSlot.css
 ├── hooks/
-│   └── usePyramidScene.js    # Three.js scene setup and mesh building
+│   └── usePyramidScene.js
 ├── utils/
-│   └── sampleImage.js        # Off-canvas pixel sampling with caching
-├── index.css                 # Global styles
-└── main.jsx                  # React entry point
+│   └── sampleImage.js
+├── index.css
+└── main.jsx
 ```
-
-## Project Requirements Met
-
-✅ Upload 1 image → flat-looking grid of colored triangles  
-✅ Upload 2-4 images → rotate scene to reveal different images  
-✅ Grid slider live-updates density  
-✅ Snap buttons smoothly animate camera  
-✅ No visible seams or gaps between pyramids  
-✅ Works on Chrome and Safari (desktop)  
 
 ## License
 
-This project is open source and available for personal and educational use.
+Open source for personal and educational use.
