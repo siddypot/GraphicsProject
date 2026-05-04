@@ -1,8 +1,4 @@
-/**
- * Image sampler using offscreen canvas with pixel caching
- */
-
-const imageCache = new Map();
+const imageCache = new Map(); // keyed by bitmap ref
 
 function createRasterCanvas(width, height) {
   if (typeof OffscreenCanvas !== 'undefined') {
@@ -14,7 +10,6 @@ function createRasterCanvas(width, height) {
   return canvas;
 }
 
-/** Raster size for mosaic sampling (higher = sharper, more memory per cached image). */
 export const SAMPLE_GRID_SIZE = 1024;
 
 export function getImagePixelData(imageBitmap, width = SAMPLE_GRID_SIZE, height = SAMPLE_GRID_SIZE) {

@@ -17,10 +17,7 @@ function App() {
   const [pyramidSize, setPyramidSize] = useState(0.35);
   const [hasImages, setHasImages] = useState(false);
 
-  const { updatePyramidCount, updatePyramidSize, snapToView } = usePyramidScene(
-    containerRef,
-    images
-  );
+  const { updatePyramidCount, updatePyramidSize, snapToView } = usePyramidScene(containerRef, images);
 
   useEffect(() => {
     const imageCount = Object.values(images).filter((img) => img !== null).length;
@@ -184,7 +181,7 @@ function App() {
         )}
 
         <div className="info-section">
-          <p>Orbit with the mouse; scroll to zoom. Snap to a face for a clean mosaic; off-axis views show a scattered 3D volume.</p>
+          <p>Drag to orbit, wheel to zoom. Use snap when you want a flat view of one face.</p>
         </div>
       </div>
     </div>

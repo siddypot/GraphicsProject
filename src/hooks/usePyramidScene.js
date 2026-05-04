@@ -34,7 +34,6 @@ function getContainerPixelSize(containerEl) {
 
 const VOLUME_SIZE = 40;
 
-/** Regular square pyramid: apex height = base half-width → four side faces are congruent isosceles triangles. */
 function apexHeightForSymmetricPyramid(baseHalf) {
   return baseHalf;
 }
@@ -44,7 +43,6 @@ function sampleFaceColors(px, py, pz, volumeHalf, imagesLocal) {
   const nx = (px + volumeHalf) * inv;
   const ny = (py + volumeHalf) * inv;
   const nz = (pz + volumeHalf) * inv;
-  // Canvas/image row 0 is top; world +Y is screen-up on Front/Back/Left/Right snaps.
   const uFromX = nx;
   const vFromY = 1 - ny;
   const uFromZ = nz;
@@ -96,8 +94,7 @@ function createPyramid(px, py, pz, baseHalf, apexHeight, volumeHalf, imagesRef) 
     const c = face.color || neutral;
     const material = new THREE.MeshBasicMaterial({
       color: new THREE.Color(c.r, c.g, c.b),
-      // Double-sided so top-down / grazing views still show sloped sides (FrontSide alone is fully culled from +Y).
-      side: THREE.DoubleSide,
+      side: THREE.DoubleSide, // grazing angles
     });
 
     const mesh = new THREE.Mesh(geometry, material);
@@ -130,7 +127,6 @@ function createPyramid(px, py, pz, baseHalf, apexHeight, volumeHalf, imagesRef) 
   return pyramid;
 }
 
-/** Spherical targets for camera offset from orbit target (Three.js Spherical convention). */
 const SNAP_SPHERICAL = {
   front: new THREE.Spherical(1, Math.PI / 2, 0),
   right: new THREE.Spherical(1, Math.PI / 2, Math.PI / 2),
@@ -348,13 +344,12 @@ export function usePyramidScene(containerRef, images) {
         }
       }
 
-      // Avoid gimbal lock when the view axis is parallel to default up (0,1,0) — fixes black / empty +Y / −Y views.
       offsetTmp.subVectors(cam.position, controlsInstance.target);
       if (offsetTmp.lengthSq() > 1e-8) {
         offsetTmp.normalize();
         const alignY = Math.abs(offsetTmp.y);
         if (alignY > 0.995) {
-          cam.up.set(0, 0, 1);
+          cam.up.set(0, 0, 1); // top/bottom snap
         } else {
           cam.up.set(0, 1, 0);
         }
