@@ -56,75 +56,71 @@ function sampleFaceColors(px, py, pz, volumeHalf, imagesLocal) {
   };
 }
 
-function createPyramid(px, py, pz, baseHalf, apexHeight, volumeHalf, imagesRef) {
-  const pyramid = new THREE.Group();
-  pyramid.position.set(px, py, pz);
-
-  const imagesLocal = imagesRef.current;
-  const colors = sampleFaceColors(px, py, pz, volumeHalf, imagesLocal);
-
+function createFaceTemplates(baseHalf, apexHeight) {
   const v0 = new THREE.Vector3(-baseHalf, 0, -baseHalf);
   const v1 = new THREE.Vector3(baseHalf, 0, -baseHalf);
   const v2 = new THREE.Vector3(baseHalf, 0, baseHalf);
   const v3 = new THREE.Vector3(-baseHalf, 0, baseHalf);
   const apex = new THREE.Vector3(0, apexHeight, 0);
 
-  const neutral = { r: 0.45, g: 0.42, b: 0.4 };
+  return {
+    front: [v2, v3, apex],
+    right: [v1, v2, apex],
+    back: [v0, v1, apex],
+    left: [v3, v0, apex],
+    bottom: [v0, v1, v2, v0, v2, v3],
+  };
+}
 
-  const sideFaces = [
-    { vertices: [v2, v3, apex], color: colors.front },
-    { vertices: [v1, v2, apex], color: colors.right },
-    { vertices: [v0, v1, apex], color: colors.back },
-    { vertices: [v3, v0, apex], color: colors.left },
-  ];
+function writeFaceData(positions, colors, vertexOffset, vertices, tx, ty, tz, color) {
+  for (let i = 0; i < vertices.length; i += 1) {
+    const v = vertices[i];
+    const dst = (vertexOffset + i) * 3;
+    positions[dst] = v.x + tx;
+    positions[dst + 1] = v.y + ty;
+    positions[dst + 2] = v.z + tz;
+    colors[dst] = color.r;
+    colors[dst + 1] = color.g;
+    colors[dst + 2] = color.b;
+  }
+}
 
-  sideFaces.forEach((face) => {
-    const [va, vb, vc] = face.vertices;
+function createStratifiedPositions(count, volumeSize) {
+  if (count <= 0) return [];
 
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array([
-      va.x, va.y, va.z,
-      vb.x, vb.y, vb.z,
-      vc.x, vc.y, vc.z,
-    ]);
+  const sideCells = Math.ceil(Math.cbrt(count));
+  const totalCells = sideCells * sideCells * sideCells;
+  const cellSize = volumeSize / sideCells;
+  const half = volumeSize * 0.5;
+  const cells = new Array(totalCells);
 
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.computeVertexNormals();
+  let idx = 0;
+  for (let x = 0; x < sideCells; x += 1) {
+    for (let y = 0; y < sideCells; y += 1) {
+      for (let z = 0; z < sideCells; z += 1) {
+        cells[idx] = [x, y, z];
+        idx += 1;
+      }
+    }
+  }
 
-    const c = face.color || neutral;
-    const material = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(c.r, c.g, c.b),
-      side: THREE.DoubleSide, // grazing angles
-    });
+  for (let i = totalCells - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = cells[i];
+    cells[i] = cells[j];
+    cells[j] = tmp;
+  }
 
-    const mesh = new THREE.Mesh(geometry, material);
-    pyramid.add(mesh);
-  });
+  const positions = new Array(count);
+  for (let i = 0; i < count; i += 1) {
+    const [cx, cy, cz] = cells[i];
+    const px = -half + (cx + Math.random()) * cellSize;
+    const py = -half + (cy + Math.random()) * cellSize;
+    const pz = -half + (cz + Math.random()) * cellSize;
+    positions[i] = [px, py, pz];
+  }
 
-  const bottomColor = colors.bottom || neutral;
-  const bottomGeom = new THREE.BufferGeometry();
-  bottomGeom.setAttribute(
-    'position',
-    new THREE.BufferAttribute(
-      new Float32Array([
-        v0.x, v0.y, v0.z,
-        v1.x, v1.y, v1.z,
-        v2.x, v2.y, v2.z,
-        v0.x, v0.y, v0.z,
-        v2.x, v2.y, v2.z,
-        v3.x, v3.y, v3.z,
-      ]),
-      3
-    )
-  );
-  bottomGeom.computeVertexNormals();
-  const bottomMat = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(bottomColor.r, bottomColor.g, bottomColor.b),
-    side: THREE.FrontSide,
-  });
-  pyramid.add(new THREE.Mesh(bottomGeom, bottomMat));
-
-  return pyramid;
+  return positions;
 }
 
 const SNAP_SPHERICAL = {
@@ -176,24 +172,66 @@ export function usePyramidScene(containerRef, images) {
       const volumeHalf = VOLUME_SIZE * 0.5;
       const baseHalf = pyramidSize;
       const apexHeight = apexHeightForSymmetricPyramid(baseHalf);
+      const templates = createFaceTemplates(baseHalf, apexHeight);
+      const neutral = { r: 0.45, g: 0.42, b: 0.4 };
+      const imagesLocal = imagesRef.current;
+      const sideVertexCount = pyramidCount * 3;
+      const bottomVertexCount = pyramidCount * 6;
+      const instancePositions = createStratifiedPositions(pyramidCount, VOLUME_SIZE);
+
+      const frontPositions = new Float32Array(sideVertexCount * 3);
+      const rightPositions = new Float32Array(sideVertexCount * 3);
+      const backPositions = new Float32Array(sideVertexCount * 3);
+      const leftPositions = new Float32Array(sideVertexCount * 3);
+      const bottomPositions = new Float32Array(bottomVertexCount * 3);
+
+      const frontColors = new Float32Array(sideVertexCount * 3);
+      const rightColors = new Float32Array(sideVertexCount * 3);
+      const backColors = new Float32Array(sideVertexCount * 3);
+      const leftColors = new Float32Array(sideVertexCount * 3);
+      const bottomColors = new Float32Array(bottomVertexCount * 3);
 
       for (let i = 0; i < pyramidCount; i += 1) {
-        const px = (Math.random() - 0.5) * VOLUME_SIZE;
-        const py = (Math.random() - 0.5) * VOLUME_SIZE;
-        const pz = (Math.random() - 0.5) * VOLUME_SIZE;
+        const [px, py, pz] = instancePositions[i];
+        const colors = sampleFaceColors(px, py, pz, volumeHalf, imagesLocal);
+        const frontColor = colors.front || neutral;
+        const rightColor = colors.right || neutral;
+        const backColor = colors.back || neutral;
+        const leftColor = colors.left || neutral;
+        const bottomColor = colors.bottom || neutral;
 
-        const pyramid = createPyramid(
-          px,
-          py,
-          pz,
-          baseHalf,
-          apexHeight,
-          volumeHalf,
-          imagesRef
-        );
-
-        pyramidGroup.add(pyramid);
+        writeFaceData(frontPositions, frontColors, i * 3, templates.front, px, py, pz, frontColor);
+        writeFaceData(rightPositions, rightColors, i * 3, templates.right, px, py, pz, rightColor);
+        writeFaceData(backPositions, backColors, i * 3, templates.back, px, py, pz, backColor);
+        writeFaceData(leftPositions, leftColors, i * 3, templates.left, px, py, pz, leftColor);
+        writeFaceData(bottomPositions, bottomColors, i * 6, templates.bottom, px, py, pz, bottomColor);
       }
+
+      const createFaceMesh = (positions, colors, side) => {
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        geometry.computeVertexNormals();
+        return new THREE.Mesh(
+          geometry,
+          new THREE.MeshBasicMaterial({
+            side,
+            vertexColors: true,
+          })
+        );
+      };
+
+      const frontMesh = createFaceMesh(frontPositions, frontColors, THREE.DoubleSide);
+      const rightMesh = createFaceMesh(rightPositions, rightColors, THREE.DoubleSide);
+      const backMesh = createFaceMesh(backPositions, backColors, THREE.DoubleSide);
+      const leftMesh = createFaceMesh(leftPositions, leftColors, THREE.DoubleSide);
+      const bottomMesh = createFaceMesh(bottomPositions, bottomColors, THREE.FrontSide);
+
+      pyramidGroup.add(frontMesh);
+      pyramidGroup.add(rightMesh);
+      pyramidGroup.add(backMesh);
+      pyramidGroup.add(leftMesh);
+      pyramidGroup.add(bottomMesh);
     } catch (err) {
       console.error('buildPyramidVolume failed', err);
     }
